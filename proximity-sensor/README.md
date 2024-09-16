@@ -13,7 +13,7 @@ Este projeto utiliza um ESP32 e dois sensores ultrassônicos HC-SR04 para contar
 
 O diagrama de ligação do projeto pode ser visualizado na imagem abaixo:
 
-![Esquema de ligação](.\demo.png)
+![Esquema de ligação](demo.png)
 
 ### Conexões:
 
