@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "version": "1.0.0",
+  "main": "server.js",
+  "name": "counter-people-esp32-server",
+  "scripts": {
+    "start": "node dist/server.js",
+    "dev": "node --env-file=.env src/server.js"
+  },
+  "keywords": [],
+  "author": "Gabriel Oliveira",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "zod": "^3.23.8"
+  }
+}
