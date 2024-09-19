@@ -10,19 +10,19 @@ let counterPeopleInRoom = 0;
 
 app.get('/add', (_, res) => {
     counterPeopleInRoom++;
-    return res.status(200).send();
+    return res.status(200).json({ messgae: "counter update" });
 });
 
 app.get('/remove', (_, res) => {
-    if(counterPeopleInRoom > 0) counterPeopleInRoom--;
-    return res.status(200).send();
+    if(counterPeopleInRoom <= 0) counterPeopleInRoom--;
+    return res.status(200).json({ messgae: "counter update" });
 });
 
 app.get('/count', (_, res) => res.status(200).json({ count: counterPeopleInRoom }));
 
 app.get('/reset', (_, res) => {
     counterPeopleInRoom = 0;
-    return res.status(200).send();
+    return res.status(200).json({ messgae: "counter reset successfully"});
 });
 
 app.listen(process.env.PORT, () => console.log("Server is running on"));
