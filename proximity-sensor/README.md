@@ -42,65 +42,93 @@ O número de pessoas dentro da sala é atualizado com base nas leituras de ambos
 O código a seguir foi desenvolvido para o ESP32. Ele configura os sensores, mede as distâncias e realiza a contagem das pessoas que entram e saem da sala.
 
 ```cpp
-const int trigPin01 = 14;
-const int echoPin01 = 27;
+#include <Arduino.h>
 
-const int trigPin02 = 17;
-const int echoPin02 = 16;
+#include <WiFi.h>
+#include <WiFiMulti.h>
+
+#include <HTTPClient.h>
 
 #define SOUND_SPEED 0.034
 #define MIN_DISTANCE_IN_CM 60.0
-#define MAX_DISTANCE_IN_CM 120.0
 
-int peopleInRoom = 0;
+const int trig = 27;
+const int echo = 26;
 
-void ensureInitalized(int trig, int echo) {
-    pinMode(trig, OUTPUT);
-    pinMode(echo, INPUT);
+HTTPClient http;
+WiFiMulti wifiMulti;
+
+void checkWifiConnection(){
+  for (uint8_t t = 4; t > 0; t--) {
+    Serial.printf("[WIFI_SETUP] aguarde %d...\n", t);
+    Serial.flush();
+    delay(1000);
+  }
+
+  wifiMulti.addAP("WIFI-IFBA", "");
 }
 
 void setup() {
-    Serial.begin(115200);
-    ensureInitalized(trigPin01, echoPin01);
-    ensureInitalized(trigPin02, echoPin02);
+  Serial.begin(115200);
+  pinMode(trig, OUTPUT);
+  pinMode(echo, INPUT);
+  checkWifiConnection();
 }
 
 void loop() {
-    clearAll();
+  clearAll();
 
-    float distanceTrig01 = getDistance(trigPin01, echoPin01); // cm
-    if (distanceTrig01 > 0 && distanceTrig01 <= MIN_DISTANCE_IN_CM)  peopleInRoom++;
+  float distance = getDistance(); // cm
+  Serial.println("Distancia Sensor 01: " + String(distance) + " cm");
+  if (distance > MIN_DISTANCE_IN_CM) return;
 
-    delayMicroseconds(2);
+  delayMicroseconds(2);
 
-    float distanceTrig02 = getDistance(trigPin02, echoPin02); // cm
-    if (distanceTrig02 >= MIN_DISTANCE_IN_CM && distanceTrig02 <= MAX_DISTANCE_IN_CM) peopleInRoom--;
+  if ((wifiMulti.run() != WL_CONNECTED)) {
+    Serial.println("Wifi não conectado");
+    return;
+  } 
 
-    delay(1000);
+  http.setReuse(false);
+  http.begin("https://esp-32-two.vercel.app/add");
 
-    if (peopleInRoom < 0) peopleInRoom = 0;
+  Serial.print("[HTTP] --> Registrando uma pessoa na sala");
 
-    Serial.println();
-    Serial.println("Pessoas na sala: " + String(peopleInRoom));
+  int statusCode = http.GET();
+  handleResponse(statusCode);
+
+  http.end();
+
+  delay(5000);
+}
+
+void handleResponse(int statusCode){
+  if(statusCode <= 0) {
+    Serial.printf("[HTTP] --> Request falhou: %s\n", http.errorToString(statusCode).c_str());
+
+    return;
+  }
+
+  Serial.printf("[HTTP] --> Request finalizada: %d\n", statusCode);
+  Serial.printf("Mensagem: %s", http.getString());
 }
 
 
-int getDistance(int trigTarget, int echoTarget) {
-    emitPulse(trigTarget);
-    long duration = pulseIn(echoTarget, HIGH);
-    return (duration * SOUND_SPEED) / 2;
+int getDistance() {
+  emitPulse();
+  long duration = pulseIn(echo, HIGH);
+  return (duration * SOUND_SPEED) / 2;
 }
 
-void emitPulse(int trigPin) {
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
+void emitPulse() {
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
 }
 
 void clearAll() {
-    digitalWrite(trigPin01, LOW);
-    digitalWrite(trigPin02, LOW);
-    delayMicroseconds(2);
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
 }
 ```
 
@@ -109,7 +137,6 @@ void clearAll() {
 1.  **Definição dos Pinos**:
 
     - `trigPin01` e `echoPin01` para o Sensor 1 (entrada).
-    - `trigPin02` e `echoPin02` para o Sensor 2 (saída).
 
 2.  **Velocidade do Som**:
 
@@ -126,11 +153,14 @@ void clearAll() {
 5.  **Contagem de Pessoas**:
 
     - Se o sensor 1 detectar uma distância menor que 60 cm, o código considera que alguém entrou na sala e incrementa o contador.
-    - Se o sensor 2 detectar uma distância entre 60 e 120 cm, o código considera que alguém saiu da sala e decrementa o contador.
 
-6.  **Correção do Contador**:
+6.  **Contagem na Api**:
 
-    - O número de pessoas nunca é negativo, e o valor mínimo do contador é ajustado para 0 se necessário.
+    - Fazemos uma requesição para esse endpoint https://esp-32-two.vercel.app/add para contar a quantidade de pessoas
+
+
+<img src="placa_sensores.jpg" style="width: 20%;">
+
 
 ## Instalação
 
